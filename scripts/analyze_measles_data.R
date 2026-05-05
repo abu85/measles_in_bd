@@ -1,23 +1,78 @@
-# add libraries (install them if needed)
+############################################################
+# Measles cases analysis: Bangladesh & USA
+# Author: Abu Bakar Siddique
+# Purpose: Clean, reproducible, beginner-friendly workflow
+############################################################
+
+
+############################
+# 1. Library setup
+############################
+
+# List of required packages
+required_packages <- c(
+  "ggplot2",
+  "dplyr",
+  "readxl",
+  "tidyr",
+  "stringr",
+  "forcats"
+)
+
+## Install missing packages (safe for beginners)
+# installed_packages <- rownames(installed.packages())
+# 
+# for (pkg in required_packages) {
+#   if (!pkg %in% installed_packages) {
+#     install.packages(pkg, dependencies = TRUE)
+#   }
+# }
+
+# Load libraries
 library(ggplot2)
 library(dplyr)
 library(readxl)
+library(tidyr)
+library(stringr)
+library(forcats)
 
 
-# https://www.who.int/data/gho/data/indicators/indicator-details/GHO/measles---number-of-reported-cases 
-# measles <- read_excel(path_to_your_data_sheet) or copy paste the numbers
+############################
+# 2. Project directories
+############################
 
-measles <- read_excel("../data/Measles reported cases and incidence 2026-05-05 11-46 UTC.xlsx")
+# Define project directories (assumes scripts/ data/ results/)
+base_dir    <- normalizePath("..")
+data_dir    <- file.path(base_dir, "data")
+results_dir <- file.path(base_dir, "results")
 
-# Or manually
+# Create results directory if it does not exist
+if (!dir.exists(results_dir)) {
+  dir.create(results_dir)
+}
+
+
+############################
+# 3. Bangladesh measles data
+############################
+
+# OPTION A: Read data from WHO Excel file
+# Source:
+# https://immunizationdata.who.int/global/wiise-detail-page/measles-reported-cases-and-incidence
+
+measles_file <- file.path(
+  data_dir,
+  "Measles reported cases and incidence 2026-05-05 11-46 UTC.xlsx"
+)
+
+# Uncomment if you want to read from Excel
+# measles <- read_excel(measles_file)
+
+
+# OPTION B: Manual data entry (fully reproducible fallback)
+
 measles <- data.frame(
-  Year = c(
-    1975,1976,1977,1978,1979,1980,1981,1982,1983,1984,
-    1985,1986,1987,1988,1989,1990,1991,1992,1993,1994,
-    1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,
-    2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,
-    2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026
-  ),
+  Year = 1975:2026,
   Measles_cases = c(
     3030,40171,22973,18576,31895,11077,10441,18116,9569,11851,
     11699,14352,13631,11471,27327,1705,9292,5768,5443,9571,
@@ -28,106 +83,120 @@ measles <- data.frame(
 )
 
 
+############################
+# 4. Data preparation
+############################
 
-# Add highlight flag
+# Years to be highlighted in plots
+highlight_years <- c(1976, 2005, 2026)
+
+# Add a highlight flag for plotting
 measles <- measles %>%
   mutate(
-    highlight = ifelse(Year %in% c(1976, 2005, 2026), "Highlight", "Normal")
+    highlight = if_else(
+      Year %in% highlight_years,
+      "Highlight",
+      "Normal"
+    )
   )
 
 
+############################
+# 5. Bar plot (Bangladesh)
+############################
 
-ggplot(measles, aes(x = factor(Year), y = Measles_cases, fill = highlight)) +
-  geom_bar(
-    stat = "identity",
+p_bar <- ggplot(
+  measles,
+  aes(
+    x = factor(Year),
+    y = Measles_cases,
+    fill = highlight
+  )
+) +
+  geom_col(
     width = 0.8,
     color = "grey30"
   ) +
-  
   scale_fill_manual(
     values = c(
-      "Highlight" = "#b22222",   # dark red (brick red)
+      "Highlight" = "#b22222",
       "Normal"    = "grey80"
     ),
     guide = "none"
-  ) +
-  
+  ) +  
+  scale_x_discrete(expand=c(0,0),breaks=seq(1980,2030,by=10))+  
   labs(
     title = "বাংলাদেশে বার্ষিক হাম রোগীর সংখ্যা\n(Annual measles cases in Bangladesh)",
-    x = "বছর\n(Year)",
-    y = "বার্ষিক হাম রোগীর সংখ্যা\n(Annual number of cases)",
-    caption = "Data source: WHO & NewAge | Figure: ABS Biplob"
-  ) +
-  
-  theme_classic(base_size = 12) +
-  
-  theme(
-    plot.title = element_text(
-      face = "bold",
-      size = 14,
-      lineheight = 1.15
-    ),
-    
-    axis.title = element_text(size = 11,face = "bold"),
-    
-    axis.text.x = element_text(
-      angle = 90,
-      vjust = 0.5,
-      size = 8,
-      color = "black"
-    ),
-    
-    axis.text.y = element_text(color = "black"),
-    
-    plot.caption = element_text(
-      size = 8.5,
-      hjust = 0,
-      color = "grey40"
-    ),
-    
-    plot.margin = margin(8, 10, 8, 8)
-  ) +
-
-
-
-ggsave(
-  "../results/Measles_Bangladesh_WHO_Lancet_style.tiff",
-  width = 7,
-  height = 5,
-  dpi = 600,
-  compression = "lzw"
-)
-
-ggplot(measles, aes(x = Year, y = Measles_cases)) +
-  geom_line(color = "black", linewidth = 0.8) +
-  scale_y_log10() +
-  labs(
-    title = "বাংলাদেশে মিজলস রোগীর সংখ্যা (Measles cases in Bangladesh, log scale)",
     x = "বছর (Year)",
-    y = "মিজলস রোগীর সংখ্যা (log10 scale)",
-    caption = "Source: WHO/UNICEF Joint Reporting Form (JRF)"
+    y = "হাম রোগীর সংখ্যা\n(Number of cases)",
+    caption = "Data: WHO & New Age | Figure: A. B. Siddique"
   ) +
   theme_classic(base_size = 12) +
   theme(
-    plot.title = element_text(face = "bold"),
+    plot.title   = element_text(face = "bold"),
+    axis.title   = element_text(),
+    axis.text.x  = element_text(vjust = 0.5, size = 8),
     plot.caption = element_text(size = 9, hjust = 0)
   )
 
+# Display plot
+print(p_bar)
+
+# Save plot
+ggsave(
+  filename = file.path(
+    results_dir,
+    "Measles_Bangladesh_barplot.tiff"
+  ),
+  plot        = p_bar,
+  width       = 7,
+  height      = 5,
+  dpi         = 600,
+  compression = "lzw"
+)
 
 
+############################
+# 6. Line plot (log scale)
+############################
+
+p_line <- ggplot(measles, aes(x = Year, y = Measles_cases)) +
+  geom_line(color = "black",linewidth = 0.8) +
+  scale_y_log10() +
+  labs(title = "Measles cases in Bangladesh (log scale)",
+       x = "Year",
+       y = "Number of cases (log10)",
+       caption = "Data: WHO & New Age | Figure: A. B. Siddique") +
+  theme_classic(base_size = 12) +
+  theme(plot.title   = element_text(face = "bold"),
+        plot.caption = element_text(size = 9, hjust = 0))
+
+# Display plot
+print(p_line)
+
+# Save plot
+ggsave(filename = file.path(results_dir, "Measles_Bangladesh_lineplot.tiff"),
+       plot        = p_line,
+       width       = 7,
+       height      = 5,
+       dpi         = 600,
+       compression = "lzw")
 
 
-## Measles in USA
-### Refer to From Rauk R , NBIS
-library(tidyverse)
+############################
+# 7. USA measles heatmap
+############################
 
-# data is here https://www.dropbox.com/s/19p8vku0i9np26b/data_wsj.csv?dl=1
+# Data source:
+# https://www.dropbox.com/s/19p8vku0i9np26b/data_wsj.csv?dl=1
+# Original inspiration: Rauk R (NBIS)
 
 # custom summing function
 fun1 <- function(x) ifelse(all(is.na(x)),NA,sum(x,na.rm=TRUE))
 
 # read data
-me3 <- read.csv("https://www.dropbox.com/s/19p8vku0i9np26b/data_wsj.csv?dl=1",header=T,stringsAsFactors=F,skip=2) %>%
+me3 <- read.csv("https://www.dropbox.com/s/19p8vku0i9np26b/data_wsj.csv?dl=1",
+                header=T,stringsAsFactors=F,skip=2) %>%
   gather(key=state,value=value,-YEAR,-WEEK) %>%
   mutate(value=str_replace(value,"^-$",NA_character_),
          value=as.numeric(value)) %>%
@@ -139,10 +208,16 @@ me3 <- read.csv("https://www.dropbox.com/s/19p8vku0i9np26b/data_wsj.csv?dl=1",he
 colnames(me3) <- tolower(colnames(me3))
 
 # custom colors
-cols <- c("#e7f0fa","#c9e2f6","#95cbee","#0099dc","#4ab04a", "#ffd73e","#eec73a","#e29421","#f05336","#ce472e")
+cols <- c("#e7f0fa","#c9e2f6","#95cbee","#0099dc","#4ab04a",
+          "#ffd73e","#eec73a","#e29421","#f05336","#ce472e")
 
-# plotting
-p <- ggplot(me3,aes(x=year,y=reorder(state,desc(state)),fill=total))+
+
+
+############################
+# 8. Heatmap plot (USA)
+############################
+
+p_usa <- ggplot(me3,aes(x=year,y=reorder(state,desc(state)),fill=total))+
   geom_tile(color="white",size=0.25)+
   scale_y_discrete(expand=c(0,0))+
   scale_x_continuous(expand=c(0,0),breaks=seq(1930,2010,by=10))+
@@ -170,4 +245,23 @@ p <- ggplot(me3,aes(x=year,y=reorder(state,desc(state)),fill=total))+
         title=element_text(hjust=-.07,vjust=1),
         panel.grid=element_blank())
 
-p
+# Display plot
+print(p_usa)
+
+# Save plot
+ggsave(
+  filename = file.path(
+    results_dir,
+    "Measles_USA_heatmap.tiff"
+  ),
+  plot        = p_usa,
+  width       = 7,
+  height      = 5,
+  dpi         = 600,
+  compression = "lzw"
+)
+
+
+############################################################
+# End of script
+############################################################
