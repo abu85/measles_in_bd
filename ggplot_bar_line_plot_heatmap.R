@@ -4,7 +4,8 @@ library(ggplot2)
 library(dplyr)
 
 # https://www.who.int/data/gho/data/indicators/indicator-details/GHO/measles---number-of-reported-cases 
-measles <- data.frame(
+# measles <- read.csv(path_to_your_data_sheet) or copy paste the numbers
+<- data.frame(
   Year = c(
     1975,1976,1977,1978,1979,1980,1981,1982,1983,1984,
     1985,1986,1987,1988,1989,1990,1991,1992,1993,1994,
