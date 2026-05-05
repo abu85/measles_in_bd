@@ -1,5 +1,4 @@
-# measles_in_bd
-Measles in Bangladesh
+# Recent Measles in Bangladesh
 
 ## Dataset collection from WHO
 https://immunizationdata.who.int/global/wiise-detail-page/measles-reported-cases-and-incidence
